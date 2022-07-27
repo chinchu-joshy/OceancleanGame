@@ -4,48 +4,72 @@ import * as THREE from "./modules/Three.module.js";
 import { OrbitControls } from "./modules/OrbitControls.js";
 import { Water } from "./modules/jsm/objects/Water.js";
 import { Sky } from "./modules/jsm/objects/Sky.js";
-import { GLTFLoader } from "./modules/jsm/objects/GLTFLoader"; ""
+import { GLTFLoader } from "./modules/jsm/objects/GLTFLoader";
+("");
 let camera, scene, renderer;
 let controls, water, sun;
-const loader= new GLTFLoader()
-
-class Boat{
-  constructor(){
-    loader.load('./Model/boat/scene.gltf',(gltf)=>{
-      gltf.scene.position.set(5,13,50)
-      gltf.scene.scale.set(3,3,3)
-      gltf.scene.rotation.set(0,1.5,0)
-      scene.add(gltf.scene)
-      this.boatmodel=gltf.scene
-      this.speed={
-        velocity:0,
-        rotation:0
-      }
-      })
+const loader = new GLTFLoader();
+function random(min, max) {
+  return Math.random() * (max - min) + min;
+}
+class Boat {
+  constructor() {
+    loader.load("./Model/boat/scene.gltf", (gltf) => {
+      gltf.scene.position.set(5, 13, 50);
+      gltf.scene.scale.set(3, 3, 3);
+      gltf.scene.rotation.set(0, 1.5, 0);
+      scene.add(gltf.scene);
+      this.boatmodel = gltf.scene;
+      this.speed = {
+        velocity: 0,
+        rotation: 0,
+      };
+    });
   }
-  stop(){
-    this.speed.rotation =0
-    this.speed.velocity=0
+  stop() {
+    this.speed.rotation = 0;
+    this.speed.velocity = 0;
   }
-  update(){
-   
-  if(this.boatmodel){
-   this.boatmodel.rotation.y += this.speed.rotation
-   this.boatmodel.position.z += this.speed.velocity
-  
-  }else{
-    console.log('errr')
-  }
-
-   
-
+  update() {
+    if (this.boatmodel) {
+      this.boatmodel.rotation.y += this.speed.rotation;
+      this.boatmodel.translateX(this.speed.velocity);
+    } else {
+      console.log("errr");
+    }
   }
 }
-const boat=new Boat()
+const boat = new Boat();
+class Trash {
+  constructor(_scene) {
+    _scene.scale.set(1.5, 1.5, 1.5);
+    _scene.position.set(random(-200, 200), -0.7, random(-200, 200));
+    scene.add(_scene);
+    this.trashmodel = _scene;
+  }
+}
+async function loadModel(url) {
+  return new Promise((resolve, reject) => [
+    loader.load(url, (gltf) => {
+      resolve(gltf.scene);
+    }),
+  ]);
+}
+let trashModel = null;
+async function createTrash() {
+  if (!trashModel) {
+    trashModel = await loadModel("./Model/garbage_bag/scene.gltf");
+  }
+  return new Trash(trashModel.clone());
+}
+
+let trashes = [];
+const TRASH_COUNT = 100;
+
 init();
 animate();
 
-function init() {
+async function init() {
   //
 
   renderer = new THREE.WebGLRenderer();
@@ -142,21 +166,33 @@ function init() {
   // GUI
 
   const waterUniforms = water.material.uniforms;
+  for (let i = 0; i < TRASH_COUNT; i++) {
+    const trash = await createTrash();
+    trashes.push(trash);
+  }
 
   //
 
   window.addEventListener("resize", onWindowResize);
-  window.addEventListener("keydown", function(e){
-   if(e.key== 'ArrowUp'){
-    boat.speed.velocity=-0.1
-   }
-
-   
-
+  window.addEventListener("keydown", function (e) {
+    if (e.key == "ArrowUp") {
+      boat.speed.velocity = 0.5;
+    
+    }
+    if (e.key == "ArrowDown") {
+      boat.speed.velocity = -0.5;
+    }
+    if (e.key == "ArrowRight") {
+      boat.speed.rotation = 0.1;
+    }
+    if (e.key == "ArrowLeft") {
+      boat.speed.rotation = -0.1;
+    }
   });
-
+  window.addEventListener("keyup", function (e) {
+    boat.stop();
+  });
 }
-
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -164,13 +200,35 @@ function onWindowResize() {
 
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
-
+function isColliding(obj1, obj2) {
+  return (
+    Math.abs(obj1.position.x - obj2.position.x) < 15 &&
+    Math.abs(obj1.position.z - obj2.position.z) < 15
+  );
+}
+function checkCollisions() {
+  if (boat.boatmodel) {
+    trashes.forEach((trash) => {
+     
+      if (trash.trashmodel) {
+        if (isColliding(boat.boatmodel, trash.trashmodel)) {
+          scene.remove(trash.trashmodel);
+        }
+      }
+    });
+  }
+}
 function animate() {
- 
   requestAnimationFrame(animate);
   render();
- 
-  boat.update()
+
+  boat.update();
+  checkCollisions();
+  // if (boat.boatmodel && trash.trashmodel) {
+  //   if (isColliding(boat.boatmodel, trash.trashmodel)) {
+  //     trash.trashmodel.position.y = -100;
+  //   }
+  // }
 }
 
 function render() {
