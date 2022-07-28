@@ -24,6 +24,8 @@ class Boat {
         velocity: 0,
         rotation: 0,
       };
+      gltf.scene.attach(camera)
+      camera.updateProjectionMatrix()
     });
   }
   stop() {
@@ -34,16 +36,19 @@ class Boat {
     if (this.boatmodel) {
       this.boatmodel.rotation.y += this.speed.rotation;
       this.boatmodel.translateX(this.speed.velocity);
+      // camera.position.x += this.speed.velocity
     } else {
       console.log("errr");
     }
   }
 }
 const boat = new Boat();
+
 class Trash {
   constructor(_scene) {
+   
     _scene.scale.set(1.5, 1.5, 1.5);
-    _scene.position.set(random(-200, 200), -0.7, random(-200, 200));
+    _scene.position.set(random(-1000, 1000), -0.7, random(-1000, 1000));
     scene.add(_scene);
     this.trashmodel = _scene;
   }
@@ -64,10 +69,62 @@ async function createTrash() {
 }
 
 let trashes = [];
-const TRASH_COUNT = 100;
+const TRASH_COUNT = 1000;
+class Thirdpersoncamera  {
+ 
+  constructor(params){
+   
+  
+  
+    this.camera=params;
+    this.currentPosition=new THREE.Vector3()
+    this.currentLookAt=new THREE.Vector3()
+   
+  }
+  CalculateIdealOffset(){
+    
+    const idealOffset=new THREE.Vector3(-15,20,-30)
+   const value= boat.boatmodel?.position
+  console.log(this.camera.target)
+   
+  //  if(value) idealOffset.applyQuaternion(boat.boatmodel?.rotation)
+    this.camera.updateProjectionMatrix();
+    if(value) idealOffset.add(boat.boatmodel?.position)
+   
+    // console.log(boat.boatmodel?.rotation)
+    if(idealOffset)  return idealOffset;
+   
+  }
+  CalculateIdealLookAt(){
+    const idealLookAt=new THREE.Vector3(0,10,50)
+    const value= boat.boatmodel?.position
+    // if(value) idealLookAt.applyQuaternion(boat.boatmodel?.rotation)
+    if(value) idealLookAt.add(boat.boatmodel?.position)
+    return idealLookAt;
+  }
+  Update(){
+   
+const idealOffset=this.CalculateIdealOffset()
+const idealLookAt=this.CalculateIdealLookAt();
+this.currentPosition.copy(idealOffset)
+this.currentLookAt.copy(idealLookAt)
+// console.log(camera)
+// this.camera.position.copy(this.currentPosition)
+// this.camera.lookAt( this.currentLookAt)
+  }
+}
+function test(){
+  console.log(boat.boatmodel)
+}
 
 init();
+
+const thirdpersoncamera=new Thirdpersoncamera(camera)
+thirdpersoncamera.Update()
+
 animate();
+
+
 
 async function init() {
   //
@@ -88,8 +145,10 @@ async function init() {
     1,
     20000
   );
-  camera.position.set(30, 30, 100);
-
+  camera.position.set(20, 30, 100);
+  // const helper = new THREE.CameraHelper( camera );
+  // scene.add( helper );
+  
   //
 
   sun = new THREE.Vector3();
@@ -157,10 +216,10 @@ async function init() {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.target.set(0, 10, 0);
-  controls.minDistance = 40.0;
-  controls.maxDistance = 200.0;
+  // controls.minDistance = 40.0;
+  // controls.maxDistance = 200.0;
   controls.update();
-
+controls.enabled=false
   //
 
   // GUI
@@ -172,12 +231,11 @@ async function init() {
   }
 
   //
-
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("keydown", function (e) {
     if (e.key == "ArrowUp") {
       boat.speed.velocity = 0.5;
-    
+      
     }
     if (e.key == "ArrowDown") {
       boat.speed.velocity = -0.5;
@@ -197,7 +255,6 @@ async function init() {
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 function isColliding(obj1, obj2) {
@@ -209,7 +266,6 @@ function isColliding(obj1, obj2) {
 function checkCollisions() {
   if (boat.boatmodel) {
     trashes.forEach((trash) => {
-     
       if (trash.trashmodel) {
         if (isColliding(boat.boatmodel, trash.trashmodel)) {
           scene.remove(trash.trashmodel);
@@ -221,8 +277,9 @@ function checkCollisions() {
 function animate() {
   requestAnimationFrame(animate);
   render();
-
+thirdpersoncamera.Update()
   boat.update();
+ 
   checkCollisions();
   // if (boat.boatmodel && trash.trashmodel) {
   //   if (isColliding(boat.boatmodel, trash.trashmodel)) {
