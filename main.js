@@ -9,9 +9,15 @@ import { GLTFLoader } from "./modules/jsm/objects/GLTFLoader";
 let camera, scene, renderer;
 let controls, water, sun;
 const loader = new GLTFLoader();
+/**
+Create random function to create the position */
 function random(min, max) {
   return Math.random() * (max - min) + min;
 }
+/**
+ * Class for loading the boat
+ */
+
 class Boat {
   constructor() {
     loader.load("./Model/boat/scene.gltf", (gltf) => {
@@ -24,8 +30,8 @@ class Boat {
         velocity: 0,
         rotation: 0,
       };
-      gltf.scene.attach(camera)
-      camera.updateProjectionMatrix()
+      gltf.scene.attach(camera);
+      camera.updateProjectionMatrix();
     });
   }
   stop() {
@@ -36,23 +42,24 @@ class Boat {
     if (this.boatmodel) {
       this.boatmodel.rotation.y += this.speed.rotation;
       this.boatmodel.translateX(this.speed.velocity);
-      // camera.position.x += this.speed.velocity
     } else {
-      console.log("errr");
+     
     }
   }
 }
 const boat = new Boat();
-
+/**
+ * class for loading the trash
+ */
 class Trash {
   constructor(_scene) {
-   
-    _scene.scale.set(1.5, 1.5, 1.5);
-    _scene.position.set(random(-1000, 1000), -0.7, random(-1000, 1000));
+    _scene.scale.set(1.7, 1.7, 1.7);
+    _scene.position.set(random(-500, 500), -0.7, random(-500, 500));
     scene.add(_scene);
     this.trashmodel = _scene;
   }
 }
+
 async function loadModel(url) {
   return new Promise((resolve, reject) => [
     loader.load(url, (gltf) => {
@@ -67,64 +74,101 @@ async function createTrash() {
   }
   return new Trash(trashModel.clone());
 }
-
 let trashes = [];
-const TRASH_COUNT = 1000;
-class Thirdpersoncamera  {
- 
-  constructor(params){
-   
-  
-  
-    this.camera=params;
-    this.currentPosition=new THREE.Vector3()
-    this.currentLookAt=new THREE.Vector3()
-   
-  }
-  CalculateIdealOffset(){
+const TRASH_COUNT = 500;
+/**
+ * Class for loading the plastic bottle
+ */
+class Plastic {
+  constructor(_scene) {
+    _scene.scale.set(.3, .3, .3);
     
-    const idealOffset=new THREE.Vector3(-15,20,-30)
-   const value= boat.boatmodel?.position
-  console.log(this.camera.target)
-   
-  //  if(value) idealOffset.applyQuaternion(boat.boatmodel?.rotation)
-    this.camera.updateProjectionMatrix();
-    if(value) idealOffset.add(boat.boatmodel?.position)
-   
-    // console.log(boat.boatmodel?.rotation)
-    if(idealOffset)  return idealOffset;
-   
+    _scene.position.set(random(-500, 500), -0.7, random(-500, 500));
+    this.plasticModel = _scene;
+    scene.add(_scene);
   }
-  CalculateIdealLookAt(){
-    const idealLookAt=new THREE.Vector3(0,10,50)
-    const value= boat.boatmodel?.position
+}
+let plasticModel = null;
+async function createPlastic() {
+  if (!plasticModel) {
+    plasticModel = await loadModel("./Model/plastic_water_bottle/scene.gltf");
+  }
+  return new Plastic(plasticModel.clone());
+}
+let bottlewaste=[]
+/**
+Class for loading the mountain */
+
+
+class Mountain{
+  constructor(){
+    loader.load("./Model/mountain/scene.gltf", (gltf) => {
+     
+     console.log("position")
+      gltf.scene.position.set(random(-500, 500),-100,random(-500, 500))
+      gltf.scene.scale.set(.8,.8,.8)
+      scene.add(gltf.scene);
+      console.log("added")
+      this.mountainmodel = gltf.scene;
+     
+     
+     
+    });
+  }
+
+ 
+}
+const mountain=new Mountain()
+
+/**
+
+
+
+ * Implement the third person camera
+ */
+class Thirdpersoncamera {
+  constructor(params) {
+    this.camera = params;
+    this.currentPosition = new THREE.Vector3();
+    this.currentLookAt = new THREE.Vector3();
+  }
+  CalculateIdealOffset() {
+    const idealOffset = new THREE.Vector3(-15, 20, -30);
+    const value = boat.boatmodel?.position;
+  
+
+    //  if(value) idealOffset.applyQuaternion(boat.boatmodel?.rotation)
+    this.camera.updateProjectionMatrix();
+    if (value) idealOffset.add(boat.boatmodel?.position);
+
+    // console.log(boat.boatmodel?.rotation)
+    if (idealOffset) return idealOffset;
+  }
+  CalculateIdealLookAt() {
+    const idealLookAt = new THREE.Vector3(0, 10, 50);
+    const value = boat.boatmodel?.position;
     // if(value) idealLookAt.applyQuaternion(boat.boatmodel?.rotation)
-    if(value) idealLookAt.add(boat.boatmodel?.position)
+    if (value) idealLookAt.add(boat.boatmodel?.position);
     return idealLookAt;
   }
-  Update(){
-   
-const idealOffset=this.CalculateIdealOffset()
-const idealLookAt=this.CalculateIdealLookAt();
-this.currentPosition.copy(idealOffset)
-this.currentLookAt.copy(idealLookAt)
-// console.log(camera)
-// this.camera.position.copy(this.currentPosition)
-// this.camera.lookAt( this.currentLookAt)
+  Update() {
+    const idealOffset = this.CalculateIdealOffset();
+    const idealLookAt = this.CalculateIdealLookAt();
+    this.currentPosition.copy(idealOffset);
+    this.currentLookAt.copy(idealLookAt);
+    // console.log(camera)
+    // this.camera.position.copy(this.currentPosition)
+    // this.camera.lookAt( this.currentLookAt)
   }
 }
-function test(){
-  console.log(boat.boatmodel)
-}
-
+/**
+Init the scene */
 init();
 
-const thirdpersoncamera=new Thirdpersoncamera(camera)
-thirdpersoncamera.Update()
+const thirdpersoncamera = new Thirdpersoncamera(camera);
+thirdpersoncamera.Update();
 
 animate();
-
-
 
 async function init() {
   //
@@ -145,10 +189,10 @@ async function init() {
     1,
     20000
   );
-  camera.position.set(20, 30, 100);
+  camera.position.set(20, 40, 110);
   // const helper = new THREE.CameraHelper( camera );
   // scene.add( helper );
-  
+
   //
 
   sun = new THREE.Vector3();
@@ -219,7 +263,7 @@ async function init() {
   // controls.minDistance = 40.0;
   // controls.maxDistance = 200.0;
   controls.update();
-controls.enabled=false
+  // controls.enabled = false;
   //
 
   // GUI
@@ -227,18 +271,19 @@ controls.enabled=false
   const waterUniforms = water.material.uniforms;
   for (let i = 0; i < TRASH_COUNT; i++) {
     const trash = await createTrash();
+    const waste = await createPlastic();
     trashes.push(trash);
+    bottlewaste.push(waste)
   }
 
   //
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("keydown", function (e) {
     if (e.key == "ArrowUp") {
-      boat.speed.velocity = 0.5;
-      
+      boat.speed.velocity = 0.8;
     }
     if (e.key == "ArrowDown") {
-      boat.speed.velocity = -0.5;
+      boat.speed.velocity = -0.8;
     }
     if (e.key == "ArrowRight") {
       boat.speed.rotation = 0.1;
@@ -277,9 +322,8 @@ function checkCollisions() {
 function animate() {
   requestAnimationFrame(animate);
   render();
-thirdpersoncamera.Update()
+  thirdpersoncamera.Update();
   boat.update();
- 
   checkCollisions();
   // if (boat.boatmodel && trash.trashmodel) {
   //   if (isColliding(boat.boatmodel, trash.trashmodel)) {
